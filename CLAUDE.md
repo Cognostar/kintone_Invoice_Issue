@@ -6,15 +6,16 @@ Uses pdfmake library with NotoSansThai font for Thai/English bilingual document 
 
 ## Architecture
 - `src/invoice-pdf.js` — Main kintone customization: Invoice & Receipt PDF generation (IIFE pattern, no build step)
-- `src/invoice-images.js` — Base64-encoded images (logo, stamp, signature)
+- `src/invoice-images.js` — Base64-encoded images (logo, stamp, signature, collectorSign)
 - `src/vfs_fonts_noto.js` — NotoSansThai font virtual file system for pdfmake
 - `src/JS_URL.txt` — CDN URL reference for kintone JS/CSS settings
 - `tools/generate-vfs.js` — Font file generator (Node.js script)
-- `tools/generate-images.js` — Image file generator (Node.js script)
+- `tools/generate-images.js` — Image file generator (Node.js script, supports logo/stamp/signature/collector_sign)
 - `Original_Docs/Invoice.xlsx` — Excel invoice template (reference)
 - `Original_Docs/Receipt.xlsx` — Excel receipt template (reference)
 - `Original_Docs/Discount.xlsx` — Excel discount invoice template (reference)
 - `Original_Docs/Discount_Pic.png` — kintone subtable screenshot with Discount_on_Invoice field
+- `Original_Docs/Collector_Sign.png` — Collector signature image (source for collectorSign)
 
 ## Key Conventions
 - All JS files use ES5 syntax (kintone compatibility, no arrow functions, no let/const)
@@ -47,6 +48,7 @@ When Discount_on_Invoice has a value, PDF shows a "marked-up then discounted" vi
 - Invoice_No, Invoice_Date, Invoice_Description, Claim_Amount, Receipt_No, W_T
 - Cheque_Bank_Name, Cheque_Branch, Cheque_No, Cheque_Date
 - Discount_on_Invoice — Discount amount for display on PDF
+- Received_Date — Payment received date (auto-displayed on Receipt PDF)
 
 ## Dependencies
 - pdfmake 0.2.10 (CDN)
@@ -58,7 +60,7 @@ Deploy to kintone → Open record detail
 - Receipt: Click "Issue Receipt PDF" button (green)
 Verify: Logo, company info, customer info, line items, amounts, stamp, signature, ruling lines
 - Invoice: 5 copies, bank transfer info, "ผู้รับวางบิล / Receiver"
-- Receipt: 4 copies, cheque info, "ผู้รับเงิน (Collector)", Tax Invoice title
+- Receipt: 4 copies, cheque info, "ผู้รับเงิน (Collector)", Tax Invoice title, Collector signature, received date
 
 ## Future TODO
 - Auto-attach generated PDF to kintone attachment field

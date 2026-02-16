@@ -52,7 +52,8 @@
     chequeNo: 'Cheque_No',
     chequeDate: 'Cheque_Date',
     poNo: 'PO_No',
-    discountOnInvoice: 'Discount_on_Invoice'
+    discountOnInvoice: 'Discount_on_Invoice',
+    receivedDate: 'Received_Date'
   };
 
   function formatNumber(num) {
@@ -349,10 +350,21 @@
       margin: [0, 8, 0, 0]
     });
 
-    // スタンプ・署名画像（右側）
+    // スタンプ・署名画像（左側: Collector署名（領収書のみ）、右側: stamp + signature）
+    var leftSignatureContent = {width: '48%', text: ''};
+    if (docType === 'receipt' && INVOICE_IMAGES.collectorSign) {
+      leftSignatureContent = {
+        width: '48%',
+        columns: [
+          {width: '*', text: ''},
+          {width: 'auto', image: INVOICE_IMAGES.collectorSign, fit: [85, 55]},
+          {width: '*', text: ''}
+        ]
+      };
+    }
     page.push({
       columns: [
-        {width: '48%', text: ''},
+        leftSignatureContent,
         {
           width: '52%',
           columns: [
@@ -391,10 +403,11 @@
       margin: [0, -10, 0, 0]
     });
 
-    // วันที่รับ / Date（左側のみ、罫線はテキストの下）
+    // วันที่รับ / Date（左側のみ）— 領収書の場合は受取日を自動表示
+    var receivedDateText = (docType === 'receipt' && data.receivedDate) ? '     ' + formatDateEn(data.receivedDate) : '';
     page.push({
       stack: [
-        {text: 'วันที่รับ / Date', fontSize: 8, margin: [20, 10, 0, 0]},
+        {text: 'วันที่รับ / Date' + receivedDateText, fontSize: 8, margin: [20, 10, 0, 0]},
         {canvas: [{type:'line', x1:80, y1:0, x2:220, y2:0, lineWidth:0.5}], margin: [0, 3, 0, 0]}
       ],
       margin: [0, 0, 0, 0]
@@ -424,7 +437,8 @@
       chequeNo: invoiceRow[FIELDS.chequeNo] ? invoiceRow[FIELDS.chequeNo].value || '' : '',
       chequeDate: invoiceRow[FIELDS.chequeDate] ? invoiceRow[FIELDS.chequeDate].value || '' : '',
       poNo: record[FIELDS.poNo] ? record[FIELDS.poNo].value || '' : '',
-      discount: invoiceRow[FIELDS.discountOnInvoice] ? invoiceRow[FIELDS.discountOnInvoice].value || '' : ''
+      discount: invoiceRow[FIELDS.discountOnInvoice] ? invoiceRow[FIELDS.discountOnInvoice].value || '' : '',
+      receivedDate: invoiceRow[FIELDS.receivedDate] ? invoiceRow[FIELDS.receivedDate].value || '' : ''
     };
 
     var content = [];

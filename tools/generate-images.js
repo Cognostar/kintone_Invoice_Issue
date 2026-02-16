@@ -2,10 +2,12 @@
 // Usage: node generate-images.js
 //
 // 同じフォルダに以下のファイルを配置:
-//   - logo.png (or logo.jpg)       ... 会社ロゴ
-//   - signature.png (or signature.jpg) ... 署名画像
+//   - logo.png (or logo.jpg)              ... 会社ロゴ
+//   - stamp.png (or stamp.jpg)            ... 社判スタンプ
+//   - signature.png (or signature.jpg)    ... 承認者署名
+//   - collector_sign.png (or .jpg)        ... Collector署名（領収書用）
 //
-// 片方だけでもOKです。
+// 見つかった画像のみ生成します。
 
 const fs = require('fs');
 const path = require('path');
@@ -26,11 +28,16 @@ function toDataUri(filePath) {
   return 'data:' + mime + ';base64,' + base64;
 }
 
-var logoPath = findImage('logo');
-var sigPath = findImage('signature');
+var images = [
+  {key: 'logo', file: 'logo', label: 'ロゴ'},
+  {key: 'stamp', file: 'stamp', label: 'スタンプ'},
+  {key: 'signature', file: 'signature', label: '承認者署名'},
+  {key: 'collectorSign', file: 'collector_sign', label: 'Collector署名'}
+];
 
-if (!logoPath && !sigPath) {
-  console.error('ERROR: logo.png/jpg または signature.png/jpg が見つかりません。');
+var found = images.filter(function(img) { return findImage(img.file); });
+if (found.length === 0) {
+  console.error('ERROR: 画像ファイルが1つも見つかりません。');
   console.error('同じフォルダに配置してください。');
   process.exit(1);
 }
@@ -38,21 +45,17 @@ if (!logoPath && !sigPath) {
 var lines = ['// Invoice PDF images - Generated ' + new Date().toISOString().split('T')[0]];
 lines.push('var INVOICE_IMAGES = {');
 
-if (logoPath) {
-  lines.push('  logo: "' + toDataUri(logoPath) + '",');
-  console.log('✓ ロゴ: ' + path.basename(logoPath) + ' (' + (fs.statSync(logoPath).size / 1024).toFixed(1) + ' KB)');
-} else {
-  lines.push('  logo: null,');
-  console.log('⚠ ロゴ画像なし（スキップ）');
-}
-
-if (sigPath) {
-  lines.push('  signature: "' + toDataUri(sigPath) + '"');
-  console.log('✓ 署名: ' + path.basename(sigPath) + ' (' + (fs.statSync(sigPath).size / 1024).toFixed(1) + ' KB)');
-} else {
-  lines.push('  signature: null');
-  console.log('⚠ 署名画像なし（スキップ）');
-}
+images.forEach(function(img, idx) {
+  var imgPath = findImage(img.file);
+  var isLast = idx === images.length - 1;
+  if (imgPath) {
+    lines.push('  ' + img.key + ': "' + toDataUri(imgPath) + '"' + (isLast ? '' : ','));
+    console.log('✓ ' + img.label + ': ' + path.basename(imgPath) + ' (' + (fs.statSync(imgPath).size / 1024).toFixed(1) + ' KB)');
+  } else {
+    lines.push('  ' + img.key + ': null' + (isLast ? '' : ','));
+    console.log('⚠ ' + img.label + '画像なし（スキップ）');
+  }
+});
 
 lines.push('};');
 

@@ -46,7 +46,13 @@
     invoiceDate: 'Invoice_Date',
     invoiceDesc: 'Invoice_Description',
     claimAmount: 'Claim_Amount',
-    receiptNo: 'Receipt_No'
+    receiptNo: 'Receipt_No',
+    chequeBankName: 'Cheque_Bank_Name',
+    chequeBranch: 'Cheque_Branch',
+    chequeNo: 'Cheque_No',
+    chequeDate: 'Cheque_Date',
+    poNo: 'PO_No',
+    discountOnInvoice: 'Discount_on_Invoice'
   };
 
   function formatNumber(num) {
@@ -88,16 +94,21 @@
     return { canvas: [{ type: 'line', x1: 0, y1: 0, x2: 515, y2: 0, lineWidth: 0.5, lineColor: '#999999' }], margin: [0, 2, 0, 2] };
   }
 
-  function buildInvoicePage(data, copyType, isFirst) {
+  function buildPage(data, copyType, isFirst, docType) {
     var totalPrice = parseFloat(data.claimAmount)||0;
+    var discount = parseFloat(data.discount)||0;
+    var displayPrice = discount > 0 ? totalPrice + discount : totalPrice;
     var vatAmount = Math.round(totalPrice * 0.07 * 100) / 100;
     var totalAmount = totalPrice + vatAmount;
 
     // 明細行
     var descLines = (data.description||'').split('\n').filter(function(l){return l.trim()!=='';});
+    if (data.poNo) {
+      descLines.push('(REF. AS P/O NO.' + data.poNo + ')');
+    }
     var itemRows = [['','PAYMENT FOR','']];
     for (var i=0; i<descLines.length; i++) {
-      itemRows.push(['', descLines[i], i===0 ? formatNumber(totalPrice) : '']);
+      itemRows.push(['', descLines[i], i===0 ? formatNumber(displayPrice) : '']);
     }
     for (var j=itemRows.length; j<10; j++) itemRows.push(['','','']);
 
@@ -136,8 +147,13 @@
     page.push({text: copyType, fontSize: 9, bold: true, alignment: 'center', margin: [0, 0, 0, 0]});
 
     // ========== タイトル ==========
-    page.push({text: 'INVOICE / ใบแจ้งหนี้', fontSize: 16, bold: true, alignment: 'center', margin: [0, 2, 0, 0]});
-    page.push({text: '(ไม่ใช่ใบกำกับภาษี)', fontSize: 9, alignment: 'center', margin: [0, 0, 0, 3]});
+    if (docType === 'receipt') {
+      page.push({text: 'ใบเสร็จรับเงิน / ใบกำกับภาษี', fontSize: 16, bold: true, alignment: 'center', margin: [0, 2, 0, 0]});
+      page.push({text: 'RECEIPT / TAX INVOICE', fontSize: 9, alignment: 'center', margin: [0, 0, 0, 3]});
+    } else {
+      page.push({text: 'INVOICE / ใบแจ้งหนี้', fontSize: 16, bold: true, alignment: 'center', margin: [0, 2, 0, 0]});
+      page.push({text: '(ไม่ใช่ใบกำกับภาษี)', fontSize: 9, alignment: 'center', margin: [0, 0, 0, 3]});
+    }
 
     // ========== Invoice No / Date ==========
     page.push({
@@ -149,8 +165,8 @@
             widths: [70, 120],
             body: [
               [
-                {text: 'Invoice No. :', fontSize: 9, alignment: 'right', border: [false,false,false,false]},
-                {text: ' ' + (data.invoiceNo||''), fontSize: 9, bold: true, alignment: 'left', border: [false,false,false,false]}
+                {text: (docType === 'receipt' ? 'Receipt No. :' : 'Invoice No. :'), fontSize: 9, alignment: 'right', border: [false,false,false,false]},
+                {text: ' ' + (docType === 'receipt' ? (data.receiptNo||'') : (data.invoiceNo||'')), fontSize: 9, bold: true, alignment: 'left', border: [false,false,false,false]}
               ],
               [
                 {text: 'Date :', fontSize: 9, alignment: 'right', border: [false,false,false,false]},
@@ -239,8 +255,21 @@
     tb.push([
       {text: '', border: [true,true,false,false]},
       {text: 'รวมค่าสินค้าหรือบริการ / Total Price', fontSize: 8, border: [false,true,false,false]},
-      {text: formatNumber(totalPrice), fontSize: 8, alignment: 'right', border: [true,true,true,false]}
+      {text: formatNumber(displayPrice), fontSize: 8, alignment: 'right', border: [true,true,true,false]}
     ]);
+    // 値引き行（discount > 0 の場合のみ）
+    if (discount > 0) {
+      tb.push([
+        {text: '', border: [true,false,false,false]},
+        {text: 'ส่วนลด / Discount', fontSize: 8, border: [false,false,false,false]},
+        {text: formatNumber(discount), fontSize: 8, alignment: 'right', border: [true,false,true,false]}
+      ]);
+      tb.push([
+        {text: '', border: [true,false,false,false]},
+        {text: 'มูลค่าหลังหักส่วนลด / Total Amount After Discount', fontSize: 8, border: [false,false,false,false]},
+        {text: formatNumber(totalPrice), fontSize: 8, alignment: 'right', border: [true,false,true,false]}
+      ]);
+    }
     tb.push([
       {text: '', border: [true,false,false,false]},
       {text: 'ภาษีมูลค่าเพิ่ม / Value Added Tax (7%)', fontSize: 8, border: [false,false,false,false]},
@@ -268,18 +297,47 @@
     // ========== 金額合計（タイ語）==========
     page.push({text: 'จำนวนเงินรวมทั้งสิ้น', fontSize: 9, bold: true, margin: [0,2,0,3]});
 
-    // ========== WHT（W_T=Yesの場合のみ表示） ==========
-    if (data.showWT) {
+    // ========== WHT（W_T=Yesの場合のみ表示、領収書では非表示） ==========
+    if (docType !== 'receipt' && data.showWT) {
       page.push({text: 'กรุณาหักภาษี ณ ที่จ่าย (Please deduct W/T)', fontSize: 9, margin: [0,0,0,5]});
     }
 
-    // ========== 振込先情報 ==========
-    page.push({text: 'กรุณาโอนเงินเข้าบัญชี (Please transfer money to this account)', fontSize: 9, bold: true, margin: [0,0,0,2]});
-    page.push({text: COMPANY.bankName, fontSize: 8, margin: [10,0,0,0]});
-    page.push({text: COMPANY.bankBranch, fontSize: 8, margin: [10,0,0,0]});
-    page.push({text: COMPANY.bankAccount, fontSize: 8, margin: [10,0,0,3]});
-    page.push({text: COMPANY.paymentNote, fontSize: 7, margin: [10,0,0,0]});
-    page.push({text: COMPANY.paymentNoteEn, fontSize: 7, margin: [10,0,0,0]});
+    // ========== 支払情報 ==========
+    if (docType === 'receipt') {
+      page.push({text: 'ชำระเงินโดย (Payment by)', fontSize: 9, bold: true, margin: [0,0,0,2]});
+      page.push({
+        table: {
+          widths: [120, '*'],
+          body: [
+            [
+              {text: 'เช็คธนาคาร / Bank :', fontSize: 8, border: [false,false,false,false]},
+              {text: (data.chequeBankName||''), fontSize: 8, border: [false,false,false,false]}
+            ],
+            [
+              {text: 'สาขา / Branch :', fontSize: 8, border: [false,false,false,false]},
+              {text: (data.chequeBranch||''), fontSize: 8, border: [false,false,false,false]}
+            ],
+            [
+              {text: 'เช็คเลขที่ / Cheque No. :', fontSize: 8, border: [false,false,false,false]},
+              {text: (data.chequeNo||''), fontSize: 8, border: [false,false,false,false]}
+            ],
+            [
+              {text: 'ลงวันที่ / Date :', fontSize: 8, border: [false,false,false,false]},
+              {text: formatDateEn(data.chequeDate), fontSize: 8, border: [false,false,false,false]}
+            ]
+          ]
+        },
+        layout: 'noBorders',
+        margin: [10,0,0,0]
+      });
+    } else {
+      page.push({text: 'กรุณาโอนเงินเข้าบัญชี (Please transfer money to this account)', fontSize: 9, bold: true, margin: [0,0,0,2]});
+      page.push({text: COMPANY.bankName, fontSize: 8, margin: [10,0,0,0]});
+      page.push({text: COMPANY.bankBranch, fontSize: 8, margin: [10,0,0,0]});
+      page.push({text: COMPANY.bankAccount, fontSize: 8, margin: [10,0,0,3]});
+      page.push({text: COMPANY.paymentNote, fontSize: 7, margin: [10,0,0,0]});
+      page.push({text: COMPANY.paymentNoteEn, fontSize: 7, margin: [10,0,0,0]});
+    }
 
     // ========== 署名欄 ==========
     // 会社名（右寄せ）
@@ -316,7 +374,7 @@
           {
             stack: [
               {canvas: [{type:'line', x1:20, y1:0, x2:220, y2:0, lineWidth:0.5}]},
-              {text: 'ผู้รับวางบิล / Receiver', fontSize: 8, margin: [20, 3, 0, 0]}
+              {text: (docType === 'receipt' ? 'ผู้รับเงิน (Collector)' : 'ผู้รับวางบิล / Receiver'), fontSize: 8, margin: [20, 3, 0, 0]}
             ],
             border: [false, false, false, false]
           },
@@ -345,7 +403,7 @@
     return page;
   }
 
-  function buildDocDefinition(record, invoiceRow) {
+  function buildDocDefinition(record, invoiceRow, docType) {
     var customerName = record[FIELDS.invoiceName].value || record[FIELDS.customerName].value || '';
     var branchCode = record[FIELDS.customerBranch].value || '';
     var isHeadOffice = !branchCode || branchCode === '00000' || branchCode === 'สำนักงานใหญ่';
@@ -359,14 +417,22 @@
       taxId: record[FIELDS.customerTaxId].value || '',
       branchCode: branchCode,
       isHeadOffice: isHeadOffice,
-      receiptNo: invoiceRow[FIELDS.receiptNo].value || '',
-      showWT: invoiceRow[FIELDS.wt] ? invoiceRow[FIELDS.wt].value === 'Yes' : true
+      receiptNo: invoiceRow[FIELDS.receiptNo] ? invoiceRow[FIELDS.receiptNo].value || '' : '',
+      showWT: invoiceRow[FIELDS.wt] ? invoiceRow[FIELDS.wt].value === 'Yes' : true,
+      chequeBankName: invoiceRow[FIELDS.chequeBankName] ? invoiceRow[FIELDS.chequeBankName].value || '' : '',
+      chequeBranch: invoiceRow[FIELDS.chequeBranch] ? invoiceRow[FIELDS.chequeBranch].value || '' : '',
+      chequeNo: invoiceRow[FIELDS.chequeNo] ? invoiceRow[FIELDS.chequeNo].value || '' : '',
+      chequeDate: invoiceRow[FIELDS.chequeDate] ? invoiceRow[FIELDS.chequeDate].value || '' : '',
+      poNo: record[FIELDS.poNo] ? record[FIELDS.poNo].value || '' : '',
+      discount: invoiceRow[FIELDS.discountOnInvoice] ? invoiceRow[FIELDS.discountOnInvoice].value || '' : ''
     };
 
     var content = [];
-    var copies = ['ต้นฉบับ (ORIGINAL)','สำเนา (COPY)','สำเนา (COPY)','สำเนา (COPY)','สำเนา (COPY)'];
+    var copies = docType === 'receipt'
+      ? ['ต้นฉบับ (ORIGINAL)','สำเนา (COPY)','สำเนา (COPY)','สำเนา (COPY)']
+      : ['ต้นฉบับ (ORIGINAL)','สำเนา (COPY)','สำเนา (COPY)','สำเนา (COPY)','สำเนา (COPY)'];
     for (var i=0; i<copies.length; i++) {
-      content = content.concat(buildInvoicePage(data, copies[i], i===0));
+      content = content.concat(buildPage(data, copies[i], i===0, docType));
     }
 
     return {
@@ -379,22 +445,34 @@
 
   // ========== kintoneイベント ==========
   kintone.events.on('app.record.detail.show', function(event) {
-    if (document.getElementById('invoice-pdf-btn')) return event;
+    if (document.getElementById('invoice-pdf-btn') && document.getElementById('receipt-pdf-btn')) return event;
     var headerSpace = kintone.app.record.getHeaderMenuSpaceElement();
     if (!headerSpace) return event;
 
-    var btn = document.createElement('button');
-    btn.id = 'invoice-pdf-btn';
-    btn.textContent = '請求書PDF発行';
-    btn.style.cssText = 'padding:8px 16px;background:#2B579A;color:#fff;border:none;border-radius:4px;cursor:pointer;font-size:13px;margin-right:8px;';
-    btn.addEventListener('click', function() { generateInvoicePdf(event.record); });
-    headerSpace.appendChild(btn);
+    if (!document.getElementById('invoice-pdf-btn')) {
+      var btn = document.createElement('button');
+      btn.id = 'invoice-pdf-btn';
+      btn.textContent = 'Issue Invoice PDF';
+      btn.style.cssText = 'padding:8px 16px;background:#2B579A;color:#fff;border:none;border-radius:4px;cursor:pointer;font-size:13px;margin-right:8px;';
+      btn.addEventListener('click', function() { generateInvoicePdf(event.record); });
+      headerSpace.appendChild(btn);
+    }
+
+    if (!document.getElementById('receipt-pdf-btn')) {
+      var receiptBtn = document.createElement('button');
+      receiptBtn.id = 'receipt-pdf-btn';
+      receiptBtn.textContent = 'Issue Receipt PDF';
+      receiptBtn.style.cssText = 'padding:8px 16px;background:#388E3C;color:#fff;border:none;border-radius:4px;cursor:pointer;font-size:13px;margin-right:8px;';
+      receiptBtn.addEventListener('click', function() { generateReceiptPdf(event.record); });
+      headerSpace.appendChild(receiptBtn);
+    }
+
     return event;
   });
 
   function generateInvoicePdf(record) {
     var tableRows = record[FIELDS.table].value;
-    if (!tableRows || tableRows.length === 0) { alert('INVOICE & PAYMENT INFORMATION にデータがありません。'); return; }
+    if (!tableRows || tableRows.length === 0) { alert('No data in INVOICE & PAYMENT INFORMATION.'); return; }
     if (tableRows.length === 1) { downloadPdf(record, tableRows[0].value); }
     else { showInvoiceSelector(record, tableRows); }
   }
@@ -408,7 +486,7 @@
     var dialog = document.createElement('div');
     dialog.style.cssText = 'background:#fff;border-radius:8px;padding:24px;min-width:400px;max-height:70vh;overflow-y:auto;box-shadow:0 4px 20px rgba(0,0,0,0.3);';
     var title = document.createElement('h3');
-    title.textContent = '発行するInvoiceを選択してください';
+    title.textContent = 'Select Invoice to issue';
     title.style.cssText = 'margin:0 0 16px;font-size:16px;color:#333;';
     dialog.appendChild(title);
 
@@ -424,13 +502,13 @@
     });
 
     var allBtn = document.createElement('button');
-    allBtn.textContent = '全Invoice一括発行';
+    allBtn.textContent = 'Issue All Invoices';
     allBtn.style.cssText = 'display:block;width:100%;padding:10px 12px;margin:12px 0 4px;background:#2B579A;color:#fff;border:none;border-radius:4px;cursor:pointer;font-size:13px;';
     allBtn.addEventListener('click', function(){overlay.remove();tableRows.forEach(function(row){downloadPdf(record,row.value);});});
     dialog.appendChild(allBtn);
 
     var cancelBtn = document.createElement('button');
-    cancelBtn.textContent = 'キャンセル';
+    cancelBtn.textContent = 'Cancel';
     cancelBtn.style.cssText = 'display:block;width:100%;padding:8px;margin:4px 0;background:none;border:1px solid #ccc;border-radius:4px;cursor:pointer;font-size:13px;color:#666;';
     cancelBtn.addEventListener('click', function(){overlay.remove();});
     dialog.appendChild(cancelBtn);
@@ -442,11 +520,74 @@
 
   function downloadPdf(record, invoiceRowData) {
     try {
-      var docDef = buildDocDefinition(record, invoiceRowData);
-      pdfMake.createPdf(docDef).download((invoiceRowData[FIELDS.invoiceNo].value||'invoice')+'_INVOICE.pdf');
+      var docDef = buildDocDefinition(record, invoiceRowData, 'invoice');
+      var customerName = record[FIELDS.invoiceName].value || record[FIELDS.customerName].value || '';
+      pdfMake.createPdf(docDef).download((invoiceRowData[FIELDS.invoiceNo].value||'invoice')+'-'+customerName+'.pdf');
     } catch(e) {
       console.error('PDF生成エラー:', e);
-      alert('PDF生成中にエラーが発生しました。\n'+e.message);
+      alert('Error generating PDF.\n'+e.message);
+    }
+  }
+
+  // ========== 領収書PDF ==========
+  function generateReceiptPdf(record) {
+    var tableRows = record[FIELDS.table].value;
+    if (!tableRows || tableRows.length === 0) { alert('No data in INVOICE & PAYMENT INFORMATION.'); return; }
+    if (tableRows.length === 1) { downloadReceiptPdf(record, tableRows[0].value); }
+    else { showReceiptSelector(record, tableRows); }
+  }
+
+  function showReceiptSelector(record, tableRows) {
+    var existing = document.getElementById('receipt-selector-overlay');
+    if (existing) existing.remove();
+    var overlay = document.createElement('div');
+    overlay.id = 'receipt-selector-overlay';
+    overlay.style.cssText = 'position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.5);z-index:10000;display:flex;align-items:center;justify-content:center;';
+    var dialog = document.createElement('div');
+    dialog.style.cssText = 'background:#fff;border-radius:8px;padding:24px;min-width:400px;max-height:70vh;overflow-y:auto;box-shadow:0 4px 20px rgba(0,0,0,0.3);';
+    var title = document.createElement('h3');
+    title.textContent = 'Select Receipt to issue';
+    title.style.cssText = 'margin:0 0 16px;font-size:16px;color:#333;';
+    dialog.appendChild(title);
+
+    tableRows.forEach(function(row) {
+      var rd = row.value;
+      var receiptNo = rd[FIELDS.receiptNo] ? rd[FIELDS.receiptNo].value || '' : '';
+      var rowBtn = document.createElement('button');
+      rowBtn.textContent = (receiptNo||'(No.)')+'  |  '+(rd[FIELDS.invoiceDate].value||'')+'  |  '+formatNumber(rd[FIELDS.claimAmount].value)+' THB';
+      rowBtn.style.cssText = 'display:block;width:100%;padding:10px 12px;margin:4px 0;background:#f5f5f5;border:1px solid #ddd;border-radius:4px;cursor:pointer;text-align:left;font-size:13px;';
+      rowBtn.onmouseover = function(){this.style.background='#e8f5e9';};
+      rowBtn.onmouseout = function(){this.style.background='#f5f5f5';};
+      rowBtn.addEventListener('click', function(){overlay.remove();downloadReceiptPdf(record,rd);});
+      dialog.appendChild(rowBtn);
+    });
+
+    var allBtn = document.createElement('button');
+    allBtn.textContent = 'Issue All Receipts';
+    allBtn.style.cssText = 'display:block;width:100%;padding:10px 12px;margin:12px 0 4px;background:#388E3C;color:#fff;border:none;border-radius:4px;cursor:pointer;font-size:13px;';
+    allBtn.addEventListener('click', function(){overlay.remove();tableRows.forEach(function(row){downloadReceiptPdf(record,row.value);});});
+    dialog.appendChild(allBtn);
+
+    var cancelBtn = document.createElement('button');
+    cancelBtn.textContent = 'Cancel';
+    cancelBtn.style.cssText = 'display:block;width:100%;padding:8px;margin:4px 0;background:none;border:1px solid #ccc;border-radius:4px;cursor:pointer;font-size:13px;color:#666;';
+    cancelBtn.addEventListener('click', function(){overlay.remove();});
+    dialog.appendChild(cancelBtn);
+
+    overlay.appendChild(dialog);
+    overlay.addEventListener('click', function(e){if(e.target===overlay)overlay.remove();});
+    document.body.appendChild(overlay);
+  }
+
+  function downloadReceiptPdf(record, invoiceRowData) {
+    try {
+      var docDef = buildDocDefinition(record, invoiceRowData, 'receipt');
+      var receiptNo = invoiceRowData[FIELDS.receiptNo] ? invoiceRowData[FIELDS.receiptNo].value || '' : '';
+      var customerName = record[FIELDS.invoiceName].value || record[FIELDS.customerName].value || '';
+      pdfMake.createPdf(docDef).download((receiptNo||'receipt')+'-'+customerName+'.pdf');
+    } catch(e) {
+      console.error('PDF生成エラー:', e);
+      alert('Error generating PDF.\n'+e.message);
     }
   }
 

@@ -1,14 +1,20 @@
 # CLAUDE.md - Project Context for Claude Code
 
 ## Project Overview
-kintone JavaScript customization for generating Invoice PDFs at Sato Kogyo Bangkok Co., Ltd.
-Uses pdfmake library with NotoSansThai font for Thai/English bilingual invoice generation.
+kintone JavaScript customization for generating Invoice and Receipt PDFs at Sato Kogyo Bangkok Co., Ltd.
+Uses pdfmake library with NotoSansThai font for Thai/English bilingual document generation.
 
 ## Architecture
-- `src/invoice-pdf.js` — Main kintone customization (IIFE pattern, no build step)
+- `src/invoice-pdf.js` — Main kintone customization: Invoice & Receipt PDF generation (IIFE pattern, no build step)
 - `src/invoice-images.js` — Base64-encoded images (logo, stamp, signature)
+- `src/vfs_fonts_noto.js` — NotoSansThai font virtual file system for pdfmake
+- `src/JS_URL.txt` — CDN URL reference for kintone JS/CSS settings
 - `tools/generate-vfs.js` — Font file generator (Node.js script)
 - `tools/generate-images.js` — Image file generator (Node.js script)
+- `Original_Docs/Invoice.xlsx` — Excel invoice template (reference)
+- `Original_Docs/Receipt.xlsx` — Excel receipt template (reference)
+- `Original_Docs/Discount.xlsx` — Excel discount invoice template (reference)
+- `Original_Docs/Discount_Pic.png` — kintone subtable screenshot with Discount_on_Invoice field
 
 ## Key Conventions
 - All JS files use ES5 syntax (kintone compatibility, no arrow functions, no let/const)
@@ -16,21 +22,45 @@ Uses pdfmake library with NotoSansThai font for Thai/English bilingual invoice g
 - Field codes follow snake_case naming (e.g., Customer_Name, Invoice_No)
 - Subtable field code is 'テーブル' (Japanese, not renamed)
 - Branch code '00000' = Head office (สำนักงานใหญ่)
+- buildPage() uses docType parameter ('invoice' or 'receipt') for conditional rendering
+- UI text (buttons, dialogs, alerts) must be in English — app users are Thai staff
+- PDF filename format: "{InvoiceNo}-{CustomerName}.pdf" / "{ReceiptNo}-{CustomerName}.pdf"
+
+## Discount Display Logic
+When Discount_on_Invoice has a value, PDF shows a "marked-up then discounted" view:
+- displayPrice = Claim_Amount + Discount (shown as item amount and Total Price)
+- ส่วนลด / Discount row shows the discount amount
+- มูลค่าหลังหักส่วนลด / Total Amount After Discount row shows Claim_Amount
+- VAT 7% is calculated on Claim_Amount (post-discount), not displayPrice
+- Final Total Amount = Claim_Amount + VAT (unchanged from non-discount case)
+- When Discount_on_Invoice is empty/zero, these rows are hidden (same as before)
 
 ## kintone App
 - App: Receive Order Management App
 - Space: Accounts Receivable (顧客からの受注関連)
 - Domain: satobkk.cybozu.com
 
+## kintone Main Record Fields
+- PO_No — Purchase Order number (auto-appended to PDF description as REF. AS P/O NO.)
+
+## kintone Subtable Fields (テーブル)
+- Invoice_No, Invoice_Date, Invoice_Description, Claim_Amount, Receipt_No, W_T
+- Cheque_Bank_Name, Cheque_Branch, Cheque_No, Cheque_Date
+- Discount_on_Invoice — Discount amount for display on PDF
+
 ## Dependencies
 - pdfmake 0.2.10 (CDN)
 - NotoSansThai font (Google Fonts)
 
 ## Testing
-Deploy to kintone → Open record detail → Click 「請求書PDF発行」 button
+Deploy to kintone → Open record detail
+- Invoice: Click "Issue Invoice PDF" button (blue)
+- Receipt: Click "Issue Receipt PDF" button (green)
 Verify: Logo, company info, customer info, line items, amounts, stamp, signature, ruling lines
+- Invoice: 5 copies, bank transfer info, "ผู้รับวางบิล / Receiver"
+- Receipt: 4 copies, cheque info, "ผู้รับเงิน (Collector)", Tax Invoice title
 
 ## Future TODO
-- Receipt (領収書) PDF generation
 - Auto-attach generated PDF to kintone attachment field
 - Support for branch office display (สาขา + branch number)
+- Add Due Date (支払期日) to Invoice PDF (Invoice No / Date section)

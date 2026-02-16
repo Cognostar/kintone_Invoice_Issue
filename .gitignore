@@ -1,0 +1,15 @@
+# Generated files (large Base64 content)
+dist/
+fonts/*.ttf
+images/*.png
+images/*.jpg
+
+# Node
+node_modules/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# IDE
+.vscode/settings.json

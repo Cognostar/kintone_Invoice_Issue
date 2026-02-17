@@ -69,6 +69,3 @@ Verify: Logo, company info, customer info, line items, amounts, stamp, signature
 - Invoice No./Date/Due Date and TAX ID blocks use matching `table` layout with `widths: [65, 85]` for colon alignment
 - Signature section (Collector/Receiver, Authorized Signature, วันที่รับ/Date) all share the same `table` with `widths: ['48%', '52%']` for consistent line alignment
 
-## Future TODO
-- Auto-attach generated PDF to kintone attachment field
-- Support for branch office display (สาขา + branch number)

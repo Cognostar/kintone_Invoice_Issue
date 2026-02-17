@@ -53,7 +53,8 @@
     chequeDate: 'Cheque_Date',
     poNo: 'PO_No',
     discountOnInvoice: 'Discount_on_Invoice',
-    receivedDate: 'Received_Date'
+    receivedDate: 'Received_Date',
+    invoiceDueDate: 'Invoice_Due_Date'
   };
 
   function formatNumber(num) {
@@ -163,17 +164,26 @@
         {
           width: 'auto',
           table: {
-            widths: [70, 120],
-            body: [
-              [
-                {text: (docType === 'receipt' ? 'Receipt No. :' : 'Invoice No. :'), fontSize: 9, alignment: 'right', border: [false,false,false,false]},
-                {text: ' ' + (docType === 'receipt' ? (data.receiptNo||'') : (data.invoiceNo||'')), fontSize: 9, bold: true, alignment: 'left', border: [false,false,false,false]}
-              ],
-              [
-                {text: 'Date :', fontSize: 9, alignment: 'right', border: [false,false,false,false]},
-                {text: ' ' + formatDateEn(data.invoiceDate), fontSize: 9, bold: true, alignment: 'left', border: [false,false,false,false]}
-              ]
-            ]
+            widths: [55, 85],
+            body: (function() {
+              var rows = [
+                [
+                  {text: (docType === 'receipt' ? 'Receipt No. :' : 'Invoice No. :'), fontSize: 9, alignment: 'right', border: [false,false,false,false]},
+                  {text: (docType === 'receipt' ? (data.receiptNo||'') : (data.invoiceNo||'')), fontSize: 9, bold: true, alignment: 'left', border: [false,false,false,false]}
+                ],
+                [
+                  {text: 'Date :', fontSize: 9, alignment: 'right', border: [false,false,false,false]},
+                  {text: formatDateEn(data.invoiceDate), fontSize: 9, bold: true, alignment: 'left', border: [false,false,false,false]}
+                ]
+              ];
+              if (docType !== 'receipt' && data.dueDate) {
+                rows.push([
+                  {text: 'Due Date :', fontSize: 9, alignment: 'right', border: [false,false,false,false]},
+                  {text: formatDateEn(data.dueDate), fontSize: 9, bold: true, alignment: 'left', border: [false,false,false,false]}
+                ]);
+              }
+              return rows;
+            })()
           },
           layout: 'noBorders'
         }
@@ -190,11 +200,11 @@
             {
               columns: [
                 {text: 'Customer :', width: 55, fontSize: 9, bold: true, alignment: 'right'},
-                {text: '   ' + (data.customerName||''), fontSize: 9}
+                {text: (data.customerName||''), fontSize: 9, margin: [10, 0, 0, 0]}
               ]
             },
             {
-              margin: [57, 2, 0, 0],
+              margin: [65, 2, 0, 0],
               columns: [
                 {
                   width: 'auto',
@@ -222,7 +232,7 @@
             {
               columns: [
                 {text: 'Address :', width: 55, fontSize: 9, bold: true, alignment: 'right'},
-                {text: '   ' + (data.address||''), fontSize: 9}
+                {text: (data.address||''), fontSize: 9, margin: [10, 0, 0, 0]}
               ],
               margin: [0, 2, 0, 0]
             }
@@ -232,7 +242,7 @@
           width: 'auto',
           columns: [
             {text: 'TAX ID :', width: 70, fontSize: 9, bold: true, alignment: 'right'},
-            {text: '   ' + (data.taxId||''), width: 120, fontSize: 9, alignment: 'left'}
+            {text: (data.taxId||''), width: 120, fontSize: 9, alignment: 'left', margin: [10, 0, 0, 0]}
           ]
         }
       ],
@@ -438,7 +448,8 @@
       chequeDate: invoiceRow[FIELDS.chequeDate] ? invoiceRow[FIELDS.chequeDate].value || '' : '',
       poNo: record[FIELDS.poNo] ? record[FIELDS.poNo].value || '' : '',
       discount: invoiceRow[FIELDS.discountOnInvoice] ? invoiceRow[FIELDS.discountOnInvoice].value || '' : '',
-      receivedDate: invoiceRow[FIELDS.receivedDate] ? invoiceRow[FIELDS.receivedDate].value || '' : ''
+      receivedDate: invoiceRow[FIELDS.receivedDate] ? invoiceRow[FIELDS.receivedDate].value || '' : '',
+      dueDate: invoiceRow[FIELDS.invoiceDueDate] ? invoiceRow[FIELDS.invoiceDueDate].value || '' : ''
     };
 
     var content = [];

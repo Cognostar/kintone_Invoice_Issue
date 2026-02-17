@@ -49,6 +49,7 @@ When Discount_on_Invoice has a value, PDF shows a "marked-up then discounted" vi
 - Cheque_Bank_Name, Cheque_Branch, Cheque_No, Cheque_Date
 - Discount_on_Invoice — Discount amount for display on PDF
 - Received_Date — Payment received date (auto-displayed on Receipt PDF)
+- Invoice_Due_Date — Due date (auto-displayed on Invoice PDF, hidden on Receipt)
 
 ## Dependencies
 - pdfmake 0.2.10 (CDN)
@@ -62,7 +63,12 @@ Verify: Logo, company info, customer info, line items, amounts, stamp, signature
 - Invoice: 5 copies, bank transfer info, "ผู้รับวางบิล / Receiver"
 - Receipt: 4 copies, cheque info, "ผู้รับเงิน (Collector)", Tax Invoice title, Collector signature, received date
 
+## pdfmake Layout Notes
+- Text spacing: Use `margin: [left, top, right, bottom]` instead of prepending space characters (pdfmake ignores leading spaces in text)
+- Invoice No./Date/Due Date block: `widths: [55, 85]` positions at ~73% from left (right 27% of page)
+- Customer/Address values: `margin: [10, 0, 0, 0]` for indent from label
+- สำนักงานใหญ่/สาขา checkboxes: `margin: [65, 2, 0, 0]` to align with Customer Name value
+
 ## Future TODO
 - Auto-attach generated PDF to kintone attachment field
 - Support for branch office display (สาขา + branch number)
-- Add Due Date (支払期日) to Invoice PDF (Invoice No / Date section)

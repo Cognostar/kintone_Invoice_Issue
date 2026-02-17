@@ -65,9 +65,9 @@ Verify: Logo, company info, customer info, line items, amounts, stamp, signature
 
 ## pdfmake Layout Notes
 - Text spacing: Use `margin: [left, top, right, bottom]` instead of prepending space characters (pdfmake ignores leading spaces in text)
-- Invoice No./Date/Due Date block: `widths: [55, 85]` positions at ~73% from left (right 27% of page)
-- Customer/Address values: `margin: [10, 0, 0, 0]` for indent from label
-- สำนักงานใหญ่/สาขา checkboxes: `margin: [65, 2, 0, 0]` to align with Customer Name value
+- Consistent layout alignment: When aligning elements (e.g., underlines) across sections, they must share the same parent structure (e.g., same table with same widths). Canvas x1/x2 coordinates are relative to the parent container, not the page — different parent structures cause misalignment even with identical x1 values.
+- Invoice No./Date/Due Date and TAX ID blocks use matching `table` layout with `widths: [65, 85]` for colon alignment
+- Signature section (Collector/Receiver, Authorized Signature, วันที่รับ/Date) all share the same `table` with `widths: ['48%', '52%']` for consistent line alignment
 
 ## Future TODO
 - Auto-attach generated PDF to kintone attachment field

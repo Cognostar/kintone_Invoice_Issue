@@ -112,7 +112,7 @@
     for (var i=0; i<descLines.length; i++) {
       itemRows.push(['', descLines[i], i===0 ? formatNumber(displayPrice) : '']);
     }
-    for (var j=itemRows.length; j<10; j++) itemRows.push(['','','']);
+    for (var j=itemRows.length; j<6; j++) itemRows.push(['','','']);
 
     var isHO = data.isHeadOffice;
     var branchText = isHO ? '' : (data.branchCode || '');
@@ -144,6 +144,8 @@
       margin: [0, 0, 0, 5]
     });
 
+    page.push(hLine());
+
     // ========== ORIGINAL/COPY（空行+中央寄せ） ==========
     page.push({text: '', margin: [0, 8, 0, 0]});
     page.push({text: copyType, fontSize: 9, bold: true, alignment: 'center', margin: [0, 0, 0, 0]});
@@ -164,22 +166,22 @@
         {
           width: 'auto',
           table: {
-            widths: [55, 85],
+            widths: [65, 85],
             body: (function() {
               var rows = [
                 [
-                  {text: (docType === 'receipt' ? 'Receipt No. :' : 'Invoice No. :'), fontSize: 9, alignment: 'right', border: [false,false,false,false]},
-                  {text: (docType === 'receipt' ? (data.receiptNo||'') : (data.invoiceNo||'')), fontSize: 9, bold: true, alignment: 'left', border: [false,false,false,false]}
+                  {text: (docType === 'receipt' ? 'Receipt No. :' : 'Invoice No. :'), fontSize: 9, bold: true, alignment: 'right', border: [false,false,false,false]},
+                  {text: (docType === 'receipt' ? (data.receiptNo||'') : (data.invoiceNo||'')), fontSize: 9, alignment: 'left', border: [false,false,false,false]}
                 ],
                 [
-                  {text: 'Date :', fontSize: 9, alignment: 'right', border: [false,false,false,false]},
-                  {text: formatDateEn(data.invoiceDate), fontSize: 9, bold: true, alignment: 'left', border: [false,false,false,false]}
+                  {text: 'Date :', fontSize: 9, bold: true, alignment: 'right', border: [false,false,false,false]},
+                  {text: formatDateEn(data.invoiceDate), fontSize: 9, alignment: 'left', border: [false,false,false,false]}
                 ]
               ];
               if (docType !== 'receipt' && data.dueDate) {
                 rows.push([
-                  {text: 'Due Date :', fontSize: 9, alignment: 'right', border: [false,false,false,false]},
-                  {text: formatDateEn(data.dueDate), fontSize: 9, bold: true, alignment: 'left', border: [false,false,false,false]}
+                  {text: 'Due Date :', fontSize: 9, bold: true, alignment: 'right', border: [false,false,false,false]},
+                  {text: formatDateEn(data.dueDate), fontSize: 9, alignment: 'left', border: [false,false,false,false]}
                 ]);
               }
               return rows;
@@ -240,10 +242,14 @@
         },
         {
           width: 'auto',
-          columns: [
-            {text: 'TAX ID :', width: 70, fontSize: 9, bold: true, alignment: 'right'},
-            {text: (data.taxId||''), width: 120, fontSize: 9, alignment: 'left', margin: [10, 0, 0, 0]}
-          ]
+          table: {
+            widths: [65, 85],
+            body: [[
+              {text: 'TAX ID :', fontSize: 9, bold: true, alignment: 'right', border: [false,false,false,false]},
+              {text: (data.taxId||''), fontSize: 9, alignment: 'left', border: [false,false,false,false]}
+            ]]
+          },
+          layout: 'noBorders'
         }
       ],
       margin: [0, 0, 0, 8]
@@ -303,7 +309,8 @@
     });
 
     // ========== 金額英語表記 ==========
-    page.push({text: numberToWords(totalAmount), fontSize: 8, italics: true, margin: [0,4,0,0]});
+    page.push({text: numberToWords(totalAmount), fontSize: 8, italics: true, margin: [0,4,0,2]});
+    page.push(hLine());
 
     // ========== 金額合計（タイ語）==========
     page.push({text: 'จำนวนเงินรวมทั้งสิ้น', fontSize: 9, bold: true, margin: [0,2,0,3]});
@@ -343,11 +350,24 @@
       });
     } else {
       page.push({text: 'กรุณาโอนเงินเข้าบัญชี (Please transfer money to this account)', fontSize: 9, bold: true, margin: [0,0,0,2]});
-      page.push({text: COMPANY.bankName, fontSize: 8, margin: [10,0,0,0]});
-      page.push({text: COMPANY.bankBranch, fontSize: 8, margin: [10,0,0,0]});
-      page.push({text: COMPANY.bankAccount, fontSize: 8, margin: [10,0,0,3]});
-      page.push({text: COMPANY.paymentNote, fontSize: 7, margin: [10,0,0,0]});
-      page.push({text: COMPANY.paymentNoteEn, fontSize: 7, margin: [10,0,0,0]});
+      page.push({
+        table: {
+          widths: ['*'],
+          body: [[{
+            stack: [
+              {text: COMPANY.bankName, fontSize: 8},
+              {text: COMPANY.bankBranch, fontSize: 8},
+              {text: COMPANY.bankAccount, fontSize: 8, margin: [0,0,0,3]},
+              {text: COMPANY.paymentNote, fontSize: 7},
+              {text: COMPANY.paymentNoteEn, fontSize: 7}
+            ],
+            fillColor: '#F8F8F8',
+            border: [false, false, false, false],
+            margin: [8, 5, 8, 5]
+          }]]
+        },
+        layout: 'noBorders'
+      });
     }
 
     // ========== 署名欄 ==========
@@ -396,14 +416,14 @@
           {
             stack: [
               {canvas: [{type:'line', x1:20, y1:0, x2:220, y2:0, lineWidth:0.5}]},
-              {text: (docType === 'receipt' ? 'ผู้รับเงิน (Collector)' : 'ผู้รับวางบิล / Receiver'), fontSize: 8, margin: [20, 3, 0, 0]}
+              {text: (docType === 'receipt' ? 'ผู้รับเงิน (Collector)' : 'ผู้รับวางบิล / Receiver'), fontSize: 8, bold: true, alignment: 'center', margin: [0, 3, 0, 0]}
             ],
             border: [false, false, false, false]
           },
           {
             stack: [
               {canvas: [{type:'line', x1:20, y1:0, x2:250, y2:0, lineWidth:0.5}]},
-              {text: 'Authorized Signature', fontSize: 8, alignment: 'center', margin: [0, 3, 0, 0]}
+              {text: 'Authorized Signature', fontSize: 8, bold: true, alignment: 'center', margin: [0, 3, 0, 0]}
             ],
             border: [false, false, false, false]
           }
@@ -414,13 +434,26 @@
     });
 
     // วันที่รับ / Date（左側のみ）— 領収書の場合は受取日を自動表示
-    var receivedDateText = (docType === 'receipt' && data.receivedDate) ? '     ' + formatDateEn(data.receivedDate) : '';
+    var receivedDateValue = (docType === 'receipt' && data.receivedDate) ? formatDateEn(data.receivedDate) : '';
     page.push({
-      stack: [
-        {text: 'วันที่รับ / Date' + receivedDateText, fontSize: 8, margin: [20, 10, 0, 0]},
-        {canvas: [{type:'line', x1:80, y1:0, x2:220, y2:0, lineWidth:0.5}], margin: [0, 3, 0, 0]}
-      ],
-      margin: [0, 0, 0, 0]
+      table: {
+        widths: ['48%', '52%'],
+        body: [[
+          {
+            stack: [
+              {columns: [
+                {text: 'วันที่รับ / Date :', fontSize: 8, bold: true, width: 'auto'},
+                {text: receivedDateValue, fontSize: 8, width: 'auto', margin: [20, 0, 0, 0]}
+              ], margin: [20, 0, 0, 0]},
+              {canvas: [{type:'line', x1:20, y1:0, x2:220, y2:0, lineWidth:0.5}], margin: [0, 3, 0, 0]}
+            ],
+            border: [false, false, false, false]
+          },
+          {text: '', border: [false, false, false, false]}
+        ]]
+      },
+      layout: 'noBorders',
+      margin: [0, 10, 0, 0]
     });
 
     return page;
